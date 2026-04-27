@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from "motion/react";
-import { Download, Sparkles, BookOpen, AlertCircle, RefreshCw, Layers } from "lucide-react";
+import { Sparkles, BookOpen, AlertCircle, RefreshCw, Layers, Share2 } from "lucide-react";
 
 // Types
 interface FrayerData {
@@ -18,16 +19,11 @@ const App: React.FC = () => {
   const [data, setData] = useState<FrayerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const posterRef = useRef<HTMLDivElement>(null);
 
   // Gemini AI Initialization
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-
-  const checkRateLimit = () => {
-    const today = new Date().toLocaleDateString();
-    const lastUsed = localStorage.getItem('frayer_last_used');
-    return lastUsed === today;
-  };
 
   const handleGenerate = async () => {
     if (!inputText.trim()) {
@@ -40,7 +36,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3-flash-preview",
         contents: `Generate a Frayer Model for the word: "${inputText}"`,
         config: {
           responseMimeType: "application/json",
@@ -73,54 +69,64 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
+  const handleSharePDF = async () => {
     const posterElement = document.getElementById('frayer-poster-area'); 
     if (!posterElement) return;
     
+    setIsDownloading(true);
     try {
         const canvas = await html2canvas(posterElement, { 
             scale: 2, 
-            useCORS: true 
+            useCORS: true,
+            backgroundColor: "#F9F8F6"
         });
         
-        // Use Blob instead of Data URL to bypass iframe security blocks
-        canvas.toBlob((blob) => {
-            if (blob === null) throw new Error("Blob creation failed");
-            
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'Frayer-Model-Study-Poster.png';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Clean up memory
-            URL.revokeObjectURL(url);
-        }, 'image/png');
-        
-    } catch (error) {
-        console.error("Download Error:", error);
-        alert("Failed to download poster. Please check browser permissions.");
-    }
-  };
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: canvas.width > canvas.height ? 'l' : 'p',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
 
-  const handleShare = async () => {
-    const wpUrl = "https://cbse.smartresourcesacademy.com/frayer-model-generator";
-    if (navigator.share) {
-        try {
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        const pdfBlob = pdf.output('blob');
+        const pdfFile = new File([pdfBlob], `Frayer-Model-${data?.word || 'Vocabulary'}.pdf`, { type: 'application/pdf' });
+
+        const wpUrl = "https://cbse.smartresourcesacademy.com/frayer-model-generator";
+        
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            title: "Frayer Model Study Sheet",
+            text: `Generated with AI at: ${wpUrl}`,
+            files: [pdfFile],
+          });
+        } else {
+          // Fallback: Download PDF and copy/share URL separately
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `Frayer-Model-${data?.word || 'Vocabulary'}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          if (navigator.share) {
             await navigator.share({
-                title: "Frayer Model Generator",
-                text: "Create beautiful vocabulary Frayer Models instantly!",
-                url: wpUrl
+              title: "Frayer Model Generator",
+              text: "Create beautiful vocabulary Frayer Models instantly!",
+              url: wpUrl
             });
-        } catch (error) {
-            console.error("Error sharing:", error);
+          } else {
+            navigator.clipboard.writeText(wpUrl);
+            alert("PDF Downloaded! Study link copied to clipboard.");
+          }
         }
-    } else {
-        navigator.clipboard.writeText(wpUrl);
-        alert("Link copied to clipboard!");
+    } catch (error) {
+        console.error("PDF Share Error:", error);
+        alert("Failed to share PDF. Please check browser permissions.");
+    } finally {
+        setIsDownloading(false);
     }
   };
 
@@ -275,18 +281,12 @@ const App: React.FC = () => {
 
             <div className="flex gap-4 justify-center mt-12 pb-12">
               <button 
-                onClick={handleDownload}
-                className="flex items-center gap-3 brutalist-border px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-md active:scale-95"
+                onClick={handleSharePDF}
+                disabled={isDownloading}
+                className="flex items-center gap-3 bg-brand-dark text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95 disabled:opacity-50"
               >
-                <Download className="w-5 h-5 text-brand-orange" />
-                Export PNG
-              </button>
-              <button 
-                onClick={handleShare}
-                className="flex items-center gap-3 bg-brand-dark text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-brand-orange transition-all shadow-lg active:scale-95"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Share Link
+                {isDownloading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
+                {isDownloading ? "Generating PDF..." : "Share PDF & Link"}
               </button>
             </div>
           </motion.div>
