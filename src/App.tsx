@@ -74,52 +74,42 @@ const App: React.FC = () => {
   };
 
   const handleDownload = async () => {
-    if (!posterRef.current) return;
-    
-    const scrollPos = window.scrollY;
-    window.scrollTo(0, 0);
-
+    const posterElement = document.getElementById('frayer-poster-area'); 
+    if (!posterElement) return;
     try {
-      const canvas = await html2canvas(posterRef.current, {
-        scale: 3,
-        logging: false,
-        useCORS: true,
-        backgroundColor: "#F9F8F6",
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
-        width: posterRef.current.scrollWidth,
-        height: posterRef.current.scrollHeight,
-        onclone: (clonedDoc) => {
-          const poster = clonedDoc.getElementById('frayer-poster-canvas');
-          if (poster) {
-            poster.style.width = '1024px';
-            poster.style.height = 'auto';
-            poster.style.minHeight = '700px';
-          }
-        }
-      });
-      
-      const link = document.createElement('a');
-      link.download = `frayer-model-${data?.word || 'vocabulary'}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
-      
-      window.scrollTo(0, scrollPos);
-    } catch (err) {
-      console.error("Download failed:", err);
-      setError("Failed to download poster. Please check browser permissions.");
+        const canvas = await html2canvas(posterElement, { 
+            scale: 2, 
+            useCORS: true 
+        });
+        const image = canvas.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = 'Frayer-Model-Study-Poster.png';
+        document.body.appendChild(link); // Required for iframe downloads
+        link.click();
+        document.body.removeChild(link); 
+    } catch (error) {
+        console.error("Download Error:", error);
+        alert("Failed to download poster. Please check browser permissions.");
     }
   };
 
-  const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(`Check out this Frayer Model AI tool: ${url}`).then(() => {
-      alert("Link copied to clipboard!");
-    }).catch(err => {
-      console.error("Share failed:", err);
-    });
+  const handleShare = async () => {
+    const wpUrl = "https://cbse.smartresourcesacademy.com/frayer-model-generator";
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: "Frayer Model Generator",
+                text: "Create beautiful vocabulary Frayer Models instantly!",
+                url: wpUrl
+            });
+        } catch (error) {
+            console.error("Error sharing:", error);
+        }
+    } else {
+        navigator.clipboard.writeText(wpUrl);
+        alert("Link copied to clipboard!");
+    }
   };
 
   return (
@@ -184,8 +174,7 @@ const App: React.FC = () => {
             className="max-w-[1024px] w-full"
           >
             <div 
-              ref={posterRef}
-              id="frayer-poster-canvas"
+              id="frayer-poster-area"
               className="bg-brand-bg p-4 md:p-12 flex flex-col"
               style={{ minHeight: '700px' }}
             >
