@@ -76,18 +76,30 @@ const App: React.FC = () => {
   const handleDownload = async () => {
     const posterElement = document.getElementById('frayer-poster-area'); 
     if (!posterElement) return;
+    
     try {
         const canvas = await html2canvas(posterElement, { 
             scale: 2, 
             useCORS: true 
         });
-        const image = canvas.toDataURL("image/png");
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = 'Frayer-Model-Study-Poster.png';
-        document.body.appendChild(link); // Required for iframe downloads
-        link.click();
-        document.body.removeChild(link); 
+        
+        // Use Blob instead of Data URL to bypass iframe security blocks
+        canvas.toBlob((blob) => {
+            if (blob === null) throw new Error("Blob creation failed");
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Frayer-Model-Study-Poster.png';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up memory
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+        
     } catch (error) {
         console.error("Download Error:", error);
         alert("Failed to download poster. Please check browser permissions.");
