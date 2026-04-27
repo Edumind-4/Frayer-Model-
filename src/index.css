@@ -13,6 +13,33 @@
   --shadow-brutalist: 8px 8px 0px #2D2D2D;
 }
 
+@media print {
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+
+  #frayer-poster-area {
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .frayer-grid-container {
+    gap: 1rem !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+  }
+
+  .brutalist-border {
+    border-width: 1px !important;
+  }
+}
+
 body {
   @apply bg-brand-bg text-brand-dark antialiased;
 }

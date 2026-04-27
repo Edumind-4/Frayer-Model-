@@ -36,7 +36,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3-flash-preview",
         contents: `Generate a Frayer Model for the word: "${inputText}"`,
         config: {
           responseMimeType: "application/json",
@@ -69,55 +69,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleShareAndDownload = async () => {
-    const posterElement = document.getElementById('frayer-poster-area'); 
-    if (!posterElement) return;
+  const handlePrint = () => {
+    window.print();
+  };
 
-    setIsDownloading(true);
-    try {
-        // 1. Generate the PDF
-        const canvas = await html2canvas(posterElement, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-        // 2. Package the PDF as a File object
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], 'Frayer-Model-Study-Poster.pdf', { type: 'application/pdf' });
-        const wpUrl = 'https://cbse.smartresourcesacademy.com/frayer-model-generator';
-
-        // 3. Try sharing the File + URL (Works on most mobile devices)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: 'Frayer Model Generator',
-                text: 'Check out this vocabulary Frayer Model I generated!',
-                url: wpUrl
-            });
-        } else {
-            // 4. Fallback for Desktop (Downloads the file and copies the link)
-            pdf.save('Frayer-Model-Study-Poster.pdf');
-            navigator.clipboard.writeText(wpUrl);
-            alert('PDF downloaded and website link copied to clipboard!');
-        }
-        
-    } catch (error) {
-        console.error("Share Error:", error);
-        alert("Oops! Something went wrong while sharing.");
-    } finally {
-        setIsDownloading(false);
-    }
+  const handleReset = () => {
+    setData(null);
+    setInputText('');
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col items-center py-10 px-4">
-      {/* Header Section */}
+    <div className="min-h-screen bg-brand-bg flex flex-col items-center py-10 px-4 print:p-0 print:bg-white transition-colors">
+      {/* Header Section - Hidden on print */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-[1024px] w-full border-b-2 border-brand-dark pb-8 mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
+        className="max-w-[1024px] w-full border-b-2 border-brand-dark pb-8 mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 print:hidden"
       >
         <div>
           <h1 className="text-5xl md:text-6xl font-serif font-black uppercase italic leading-none tracking-tighter">
@@ -157,7 +124,7 @@ const App: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mb-8 flex items-center gap-2 text-red-600 bg-red-50 brutalist-border p-4 shadow-sm font-mono text-sm uppercase tracking-tighter"
+          className="mb-8 flex items-center gap-2 text-red-600 bg-red-50 brutalist-border p-4 shadow-sm font-mono text-sm uppercase tracking-tighter print:hidden"
         >
           <AlertCircle className="w-4 h-4" />
           {error}
@@ -174,9 +141,17 @@ const App: React.FC = () => {
           >
             <div 
               id="frayer-poster-area"
-              className="bg-brand-bg p-4 md:p-12 flex flex-col"
+              className="bg-brand-bg p-4 md:p-12 flex flex-col print:p-0 print:bg-white"
               style={{ minHeight: '700px' }}
             >
+              <button 
+                onClick={handleReset}
+                className="mb-8 self-center flex items-center gap-2 text-gray-400 hover:text-brand-orange transition-colors font-mono text-[10px] uppercase tracking-widest print:hidden"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Change Word
+              </button>
+
               {/* Mobile Only Word Header */}
               <div className="mobile-center-word">
                 {data.word}
@@ -184,9 +159,9 @@ const App: React.FC = () => {
 
               <div className="frayer-grid-container flex-grow relative">
                 {/* 1. Definition */}
-                <div className="brutalist-border bg-white p-6 md:p-12 md:pb-20 md:pr-20 relative overflow-hidden group">
-                  <div className="decorative-badge -top-4 -left-4 rotate-[-15deg]">
-                    <span className="mt-4 ml-4">01</span>
+                <div className="brutalist-border bg-white p-6 md:p-12 md:pb-20 md:pr-20 relative overflow-hidden group print:p-8">
+                  <div className="decorative-badge -top-4 -left-4 rotate-[-15deg] print:rotate-0 print:top-0 print:left-0 print:w-10 print:h-10 print:text-sm">
+                    <span className="mt-4 ml-4 print:m-0">01</span>
                   </div>
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] mb-6 md:mb-10 text-center opacity-30 italic">Definition</h3>
                   <p className="text-xl md:text-2xl font-serif leading-relaxed text-brand-dark lowercase">
@@ -195,14 +170,14 @@ const App: React.FC = () => {
                 </div>
 
                 {/* 2. Synonyms */}
-                <div className="brutalist-border bg-white p-6 md:p-10 md:pb-16 md:pl-16 relative overflow-hidden">
-                  <div className="decorative-badge -top-4 -right-4 rotate-[15deg]">
-                    <span className="mt-4 mr-4">02</span>
+                <div className="brutalist-border bg-white p-6 md:p-10 md:pb-16 md:pl-16 relative overflow-hidden print:p-8">
+                  <div className="decorative-badge -top-4 -right-4 rotate-[15deg] print:rotate-0 print:top-0 print:right-0 print:w-10 print:h-10 print:text-sm">
+                    <span className="mt-4 mr-4 print:m-0">02</span>
                   </div>
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] mb-6 md:mb-10 text-center opacity-30 italic">Synonyms</h3>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {data.synonyms.map((s, i) => (
-                      <span key={i} className="px-3 py-1 md:px-4 md:py-2 bg-gray-100 brutalist-border rounded-full text-xs md:text-sm font-black uppercase tracking-tight text-brand-dark">
+                      <span key={i} className="px-3 py-1 md:px-4 md:py-2 bg-gray-100 brutalist-border rounded-full text-xs md:text-sm font-black uppercase tracking-tight text-brand-dark print:border-brand-dark">
                         {s}
                       </span>
                     ))}
@@ -210,9 +185,9 @@ const App: React.FC = () => {
                 </div>
 
                 {/* 3. Example */}
-                <div className="brutalist-border bg-white p-6 md:p-10 md:pt-16 md:pr-16 relative overflow-hidden">
-                  <div className="decorative-badge -bottom-4 -left-4 rotate-[15deg]">
-                    <span className="mb-4 ml-4">03</span>
+                <div className="brutalist-border bg-white p-6 md:p-10 md:pt-16 md:pr-16 relative overflow-hidden print:p-8">
+                  <div className="decorative-badge -bottom-4 -left-4 rotate-[15deg] print:rotate-0 print:bottom-0 print:left-0 print:w-10 print:h-10 print:text-sm">
+                    <span className="mb-4 ml-4 print:m-0">03</span>
                   </div>
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] mb-6 md:mb-10 text-center opacity-30 italic">Example Usage</h3>
                   <p className="text-lg md:text-xl font-serif italic border-l-4 border-brand-orange pl-6 md:pl-8 leading-relaxed text-brand-dark">
@@ -221,9 +196,9 @@ const App: React.FC = () => {
                 </div>
 
                 {/* 4. Antonyms */}
-                <div className="brutalist-border bg-white p-6 md:p-10 md:pt-16 md:pl-16 relative overflow-hidden">
-                  <div className="decorative-badge -bottom-4 -right-4 rotate-[-15deg]">
-                    <span className="mb-4 mr-4">04</span>
+                <div className="brutalist-border bg-white p-6 md:p-10 md:pt-16 md:pl-16 relative overflow-hidden print:p-8">
+                  <div className="decorative-badge -bottom-4 -right-4 rotate-[-15deg] print:rotate-0 print:bottom-0 print:right-0 print:w-10 print:h-10 print:text-sm">
+                    <span className="mb-4 mr-4 print:m-0">04</span>
                   </div>
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] mb-6 md:mb-10 text-center opacity-30 italic">Antonyms</h3>
                   <div className="flex flex-wrap gap-2 justify-center">
@@ -235,12 +210,12 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* The Center Word (Desktop Only) */}
+                {/* The Center Word (Desktop & Print Only) */}
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                  className="frayer-center"
+                  className="frayer-center print:flex"
                 >
                   <h2 className={`${
                     data.word.length > 18 ? 'text-sm' : 
@@ -254,20 +229,19 @@ const App: React.FC = () => {
                 </motion.div>
               </div>
 
-              <div className="mt-10 flex justify-between items-center text-[10px] font-mono tracking-widest opacity-40 uppercase">
-                <span>Designed for Academic Excellence</span>
-                <span>(c) {new Date().getFullYear()} smartresourcesacademy.com</span>
+              <div className="mt-16 pt-8 border-t border-brand-dark/10 flex flex-col items-center gap-2">
+                <span className="text-[10px] font-mono tracking-widest opacity-40 uppercase">Designed for Academic Excellence • {new Date().getFullYear()}</span>
+                <span className="text-[11px] font-mono font-bold tracking-wider text-brand-orange">https://cbse.smartresourcesacademy.com/frayer-model-generator</span>
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center mt-12 pb-12">
+            <div className="flex gap-4 justify-center mt-12 pb-12 print:hidden">
               <button 
-                onClick={handleShareAndDownload}
-                disabled={isDownloading}
-                className="flex items-center gap-3 bg-brand-dark text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                onClick={handlePrint}
+                className="flex items-center gap-3 bg-brand-dark text-white px-12 py-5 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95"
               >
-                {isDownloading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
-                {isDownloading ? "Generating PDF..." : "Share PDF & Link"}
+                <Share2 className="w-5 h-5" />
+                Print or Save as PDF
               </button>
             </div>
           </motion.div>
