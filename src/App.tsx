@@ -36,7 +36,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3-flash-preview",
         contents: `Generate a Frayer Model for the word: "${inputText}"`,
         config: {
           responseMimeType: "application/json",
@@ -69,62 +69,43 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSharePDF = async () => {
+  const handleShareAndDownload = async () => {
     const posterElement = document.getElementById('frayer-poster-area'); 
     if (!posterElement) return;
-    
+
     setIsDownloading(true);
     try {
-        const canvas = await html2canvas(posterElement, { 
-            scale: 2, 
-            useCORS: true,
-            backgroundColor: "#F9F8F6"
-        });
-        
+        // 1. Generate the PDF
+        const canvas = await html2canvas(posterElement, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: canvas.width > canvas.height ? 'l' : 'p',
-          unit: 'px',
-          format: [canvas.width, canvas.height]
-        });
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        // 2. Package the PDF as a File object
         const pdfBlob = pdf.output('blob');
-        const pdfFile = new File([pdfBlob], `Frayer-Model-${data?.word || 'Vocabulary'}.pdf`, { type: 'application/pdf' });
+        const file = new File([pdfBlob], 'Frayer-Model-Study-Poster.pdf', { type: 'application/pdf' });
+        const wpUrl = 'https://cbse.smartresourcesacademy.com/frayer-model-generator';
 
-        const wpUrl = "https://cbse.smartresourcesacademy.com/frayer-model-generator";
-        
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-          await navigator.share({
-            title: "Frayer Model Study Sheet",
-            text: `Generated with AI at: ${wpUrl}`,
-            files: [pdfFile],
-          });
-        } else {
-          // Fallback: Download PDF and copy/share URL separately
-          const url = URL.createObjectURL(pdfBlob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Frayer-Model-${data?.word || 'Vocabulary'}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-          
-          if (navigator.share) {
+        // 3. Try sharing the File + URL (Works on most mobile devices)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
-              title: "Frayer Model Generator",
-              text: "Create beautiful vocabulary Frayer Models instantly!",
-              url: wpUrl
+                files: [file],
+                title: 'Frayer Model Generator',
+                text: 'Check out this vocabulary Frayer Model I generated!',
+                url: wpUrl
             });
-          } else {
+        } else {
+            // 4. Fallback for Desktop (Downloads the file and copies the link)
+            pdf.save('Frayer-Model-Study-Poster.pdf');
             navigator.clipboard.writeText(wpUrl);
-            alert("PDF Downloaded! Study link copied to clipboard.");
-          }
+            alert('PDF downloaded and website link copied to clipboard!');
         }
+        
     } catch (error) {
-        console.error("PDF Share Error:", error);
-        alert("Failed to share PDF. Please check browser permissions.");
+        console.error("Share Error:", error);
+        alert("Oops! Something went wrong while sharing.");
     } finally {
         setIsDownloading(false);
     }
@@ -281,7 +262,7 @@ const App: React.FC = () => {
 
             <div className="flex gap-4 justify-center mt-12 pb-12">
               <button 
-                onClick={handleSharePDF}
+                onClick={handleShareAndDownload}
                 disabled={isDownloading}
                 className="flex items-center gap-3 bg-brand-dark text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95 disabled:opacity-50"
               >
