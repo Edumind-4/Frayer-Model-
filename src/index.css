@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Playfair Display", serif;
+  
+  --color-brand-orange: #FF6321;
+  --color-brand-dark: #2D2D2D;
+  --color-brand-bg: #F9F8F6;
+
+  --shadow-brutalist: 8px 8px 0px #2D2D2D;
+}
+
+body {
+  @apply bg-brand-bg text-brand-dark antialiased;
+}
+
+@utility brutalist-border {
+  border: 2px solid #2D2D2D;
+}
+
+@utility brutalist-shadow {
+  box-shadow: 8px 8px 0px #2D2D2D;
+}
+
+.frayer-grid-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  position: relative;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .frayer-grid-container {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 3rem;
+    min-height: 500px;
+  }
+}
+
+.frayer-center {
+  @apply hidden md:flex z-50 bg-brand-orange rounded-full border-4 border-brand-dark items-center justify-center shadow-brutalist transition-transform hover:scale-105;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: 180px;
+  height: 180px;
+  text-align: center;
+  rotate: -3deg;
+}
+
+/* Mobile-only center display */
+.mobile-center-word {
+  @apply md:hidden bg-brand-orange text-white p-4 brutalist-border brutalist-shadow mb-8 text-center font-serif font-black italic tracking-tighter text-3xl;
+}
+
+.decorative-badge {
+  @apply absolute w-16 h-16 bg-brand-dark flex items-center justify-center font-mono text-white text-xl;
+}
