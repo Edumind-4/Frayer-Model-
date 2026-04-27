@@ -76,22 +76,50 @@ const App: React.FC = () => {
   const handleDownload = async () => {
     if (!posterRef.current) return;
     
+    const scrollPos = window.scrollY;
+    window.scrollTo(0, 0);
+
     try {
       const canvas = await html2canvas(posterRef.current, {
-        scale: 3, // High quality
+        scale: 3,
         logging: false,
         useCORS: true,
-        backgroundColor: "#f8fafc",
+        backgroundColor: "#F9F8F6",
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+        width: posterRef.current.scrollWidth,
+        height: posterRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          const poster = clonedDoc.getElementById('frayer-poster-canvas');
+          if (poster) {
+            poster.style.width = '1024px';
+            poster.style.height = 'auto';
+            poster.style.minHeight = '700px';
+          }
+        }
       });
       
       const link = document.createElement('a');
       link.download = `frayer-model-${data?.word || 'vocabulary'}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
+      
+      window.scrollTo(0, scrollPos);
     } catch (err) {
       console.error("Download failed:", err);
-      setError("Failed to download poster.");
+      setError("Failed to download poster. Please check browser permissions.");
     }
+  };
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(`Check out this Frayer Model AI tool: ${url}`).then(() => {
+      alert("Link copied to clipboard!");
+    }).catch(err => {
+      console.error("Share failed:", err);
+    });
   };
 
   return (
@@ -157,6 +185,7 @@ const App: React.FC = () => {
           >
             <div 
               ref={posterRef}
+              id="frayer-poster-canvas"
               className="bg-brand-bg p-4 md:p-12 flex flex-col"
               style={{ minHeight: '700px' }}
             >
@@ -252,6 +281,7 @@ const App: React.FC = () => {
                 Export PNG
               </button>
               <button 
+                onClick={handleShare}
                 className="flex items-center gap-3 bg-brand-dark text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-brand-orange transition-all shadow-lg active:scale-95"
               >
                 <RefreshCw className="w-5 h-5" />
