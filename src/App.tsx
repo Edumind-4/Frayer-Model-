@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, BookOpen, AlertCircle, RefreshCw, Layers, Share2 } from "lucide-react";
+import { Sparkles, BookOpen, AlertCircle, RefreshCw, Layers, Share2, Download } from "lucide-react";
 
 // Types
 interface FrayerData {
@@ -36,7 +36,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3-flash-preview",
         contents: `Generate a Frayer Model for the word: "${inputText}"`,
         config: {
           responseMimeType: "application/json",
@@ -71,6 +71,44 @@ const App: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPNG = async () => {
+    const posterElement = document.getElementById('frayer-poster-area'); 
+    if (!posterElement) return;
+    
+    setIsDownloading(true);
+    try {
+        const canvas = await html2canvas(posterElement, { 
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: "#F9F8F6"
+        });
+        
+        canvas.toBlob((blob) => {
+            if (blob === null) {
+              setIsDownloading(false);
+              throw new Error("Blob creation failed");
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Frayer-Model-${data?.word || 'Study-Poster'}.png`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(url);
+            setIsDownloading(false);
+        }, 'image/png');
+        
+    } catch (error) {
+        console.error("PNG Export Error:", error);
+        alert("Failed to export PNG. Please check browser permissions.");
+        setIsDownloading(false);
+    }
   };
 
   const handleReset = () => {
@@ -235,13 +273,22 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center mt-12 pb-12 print:hidden">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 pb-12 print:hidden">
               <button 
                 onClick={handlePrint}
-                className="flex items-center gap-3 bg-brand-dark text-white px-12 py-5 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95"
+                className="flex items-center justify-center gap-3 bg-brand-dark text-white px-8 py-5 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-brand-orange transition-all shadow-xl active:scale-95"
               >
                 <Share2 className="w-5 h-5" />
-                Print or Save as PDF
+                Print / PDF
+              </button>
+              
+              <button 
+                onClick={handleDownloadPNG}
+                disabled={isDownloading}
+                className="flex items-center justify-center gap-3 border-2 border-brand-dark text-brand-dark bg-white px-8 py-5 rounded-xl font-black text-sm uppercase tracking-widest hover:border-brand-orange hover:text-brand-orange transition-all shadow-xl active:scale-95 disabled:opacity-50"
+              >
+                {isDownloading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                {isDownloading ? "Generating..." : "Export as PNG"}
               </button>
             </div>
           </motion.div>
