@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
-import html2canvas from 'html2canvas';
+import { domToPng } from 'modern-screenshot';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, BookOpen, AlertCircle, RefreshCw, Layers, Share2, Download } from "lucide-react";
@@ -36,7 +36,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3-flash-preview",
         contents: `Generate a Frayer Model for the word: "${inputText}"`,
         config: {
           responseMimeType: "application/json",
@@ -79,34 +79,23 @@ const App: React.FC = () => {
     
     setIsDownloading(true);
     try {
-        const canvas = await html2canvas(posterElement, { 
-            scale: 2, 
-            useCORS: true,
-            backgroundColor: "#F9F8F6"
+        const dataUrl = await domToPng(posterElement, {
+            scale: 2,
+            backgroundColor: "#F9F8F6",
         });
         
-        canvas.toBlob((blob) => {
-            if (blob === null) {
-              setIsDownloading(false);
-              throw new Error("Blob creation failed");
-            }
-            
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Frayer-Model-${data?.word || 'Study-Poster'}.png`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            URL.revokeObjectURL(url);
-            setIsDownloading(false);
-        }, 'image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `Frayer-Model-${data?.word || 'Study-Poster'}.png`;
         
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setIsDownloading(false);
     } catch (error) {
         console.error("PNG Export Error:", error);
-        alert("Failed to export PNG. Please check browser permissions.");
+        alert("Failed to export PNG. This is usually due to browser restrictions on external assets. Try the 'Print / PDF' button instead.");
         setIsDownloading(false);
     }
   };
